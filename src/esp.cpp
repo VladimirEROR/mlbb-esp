@@ -127,7 +127,7 @@ void DrawESP() {
 
         char label[256];
         const char* name = ent.name ? ent.name : "??";
-        sprintf(label, "%s [%.0fm]", name, dist * 0.3f);
+        snprintf(label, sizeof(label), "%s [%.0fm]", name, dist * 0.3f);
         DrawText(label, screenPos.x, top - 16, 1.0f, 1.0f, 1.0f, 1.0f);
     }
     pthread_mutex_unlock(&entityMutex);
@@ -141,7 +141,6 @@ void* HookedUpdate(void* battleManager) {
 
     UpdateEntities();
     DrawESP();
-    DrawToggleButton();
 
     return result;
 }
@@ -150,5 +149,5 @@ void* HookedUpdate(void* battleManager) {
 extern "C" void mlbb_esp_init() {
     // Hook BattleManager.Update
     // MSHookFunction((void*)BattleManager_Update, (void*)HookedUpdate, (void**)&originalUpdate);
-    printf("[ESP] Injected. Press the button to toggle.\n");
+    printf("[ESP] Injected. ESP is active.\n");
 }
