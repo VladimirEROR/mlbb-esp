@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build dylib
+      - name: Build dylib with embedded plist
         run: |
           SDKROOT=$(xcrun --sdk iphoneos --show-sdk-path)
           clang++ -arch arm64 -shared -O2 \
@@ -22,15 +22,14 @@ jobs:
             -framework CoreGraphics \
             -framework QuartzCore \
             -framework Foundation \
+            -sectcreate __TEXT __info_plist libmlbb_esp.plist \
             src/esp.cpp \
             src/helpers.cpp \
             src/main.mm \
             -o libmlbb_esp.dylib
 
-      - name: Upload artifacts
+      - name: Upload dylib
         uses: actions/upload-artifact@v4
         with:
-          name: mlbb-esp-bundle
-          path: |
-            libmlbb_esp.dylib
-            libmlbb_esp.plist
+          name: mlbb-esp
+          path: libmlbb_esp.dylib
