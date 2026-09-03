@@ -1,4 +1,4 @@
-name: Build MLBB ESP Dylib
+name: Build MLBB ESP
 
 on:
   push:
@@ -19,8 +19,7 @@ jobs:
             -fPIC -std=c++17 -D_DARWIN_C_SOURCE \
             -isysroot $SDKROOT \
             -framework UIKit -framework CoreGraphics -framework QuartzCore \
-            -framework Metal -framework MetalKit -framework QuartzCore \
-            src/*.cpp src/*.mm src/imgui/*.cpp -o libmlbb_esp.dylib
+            src/*.cpp src/*.mm -o libmlbb_esp.dylib
 
       - name: Upload dylib
         uses: actions/upload-artifact@v3
