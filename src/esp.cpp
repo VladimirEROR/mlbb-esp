@@ -6,7 +6,6 @@
 #include <algorithm>
 #include "offsets.h"
 
-// ===== Structs
 struct Vector3 { float x, y, z; };
 
 struct Entity {
@@ -20,7 +19,6 @@ struct Entity {
     char* name;
 };
 
-// ===== Globals
 std::vector<Entity> entities;
 pthread_mutex_t entityMutex = PTHREAD_MUTEX_INITIALIZER;
 void* localPlayerPtr = nullptr;
@@ -36,18 +34,44 @@ void DrawHealthBar(float x, float y, float w, float h, float percent);
 void DrawText(const char* text, float x, float y, float r, float g, float b, float a);
 void* GetBattleManagerInstance();
 
-// ===== Update entities
+// ===== Safe pointer read
+template<typename T>
+T SafeRead(void* addr, T fallback = T()) {
+    if (!addr) return fallback;
+    // Check if address looks valid (crude but prevents 0x19999998 crashes)
+    uintptr_t val = (uintptr_t)addr;
+    if (val < 0x1000 || val > 0x7fffffffffffULL) return fallback;
+    return *(T*)addr;
+}
+
 void UpdateEntities() {
     void* bm = GetBattleManagerInstance();
-    if (!bm) return;
+    if (!bm) {
+        printf("[ESP] BattleManager is null\n");
+        return;
+    }
 
-    localPlayerPtr = *(void**)((uintptr_t)bm + BattleManager_m_LocalPlayerShow);
+    // Read local player with safety
+    localPlayerPtr = SafeRead<void*>( (void**)((uintptr_t)bm + BattleManager_m_LocalPlayerShow) );
+    if (!localPlayerPtr) {
+        printf("[ESP] LocalPlayer is null\n");
+    }
 
-    void* playersArray = *(void**)((uintptr_t)bm + BattleManager_m_ShowPlayers);
-    if (!playersArray) return;
+    // Read players array
+    void* playersArray = SafeRead<void*>( (void**)((uintptr_t)bm + BattleManager_m_ShowPlayers) );
+    if (!playersArray) {
+        printf("[ESP] Players array is null\n");
+        return;
+    }
 
-    int length = *(int*)((uintptr_t)playersArray + Array_length);
+    int length = SafeRead<int>( (int*)((uintptr_t)playersArray + Array_length), 0 );
+    if (length <= 0 || length > 100) {  // sanity check
+        printf("[ESP] Invalid array length: %d\n", length);
+        return;
+    }
+
     void** items = (void**)((uintptr_t)playersArray + Array_items);
+    if (!items) return;
 
     pthread_mutex_lock(&entityMutex);
     entities.clear();
@@ -58,36 +82,43 @@ void UpdateEntities() {
 
         Entity ent;
         ent.ptr = player;
-        ent.pos = *(Vector3*)((uintptr_t)player + ShowEntity__Position);
-        ent.hp = *(float*)((uintptr_t)player + EntityBase_m_Hp);
-        ent.hpMax = *(float*)((uintptr_t)player + EntityBase_m_HpMax);
-        ent.isDead = *(bool*)((uintptr_t)player + EntityBase_m_bDeath);
-        bool sameCamp = *(bool*)((uintptr_t)player + EntityBase_m_bSameCampType);
+
+        // Read with safety
+        ent.pos = SafeRead<Vector3>( (Vector3*)((uintptr_t)player + ShowEntity__Position) );
+        ent.hp = SafeRead<float>( (float*)((uintptr_t)player + EntityBase_m_Hp), 0.0f );
+        ent.hpMax = SafeRead<float>( (float*)((uintptr_t)player + EntityBase_m_HpMax), 100.0f );
+        ent.isDead = SafeRead<bool>( (bool*)((uintptr_t)player + EntityBase_m_bDeath), true );
+        bool sameCamp = SafeRead<bool>( (bool*)((uintptr_t)player + EntityBase_m_bSameCampType), true );
         ent.isEnemy = !sameCamp;
-        ent.level = *(int*)((uintptr_t)player + EntityBase_m_Level);
-        ent.id = *(uint32_t*)((uintptr_t)player + EntityBase_m_ID);
-        ent.name = (char*)((uintptr_t)player + ShowEntity_m_RoleName);
+        ent.level = SafeRead<int>( (int*)((uintptr_t)player + EntityBase_m_Level), 0 );
+        ent.id = SafeRead<uint32_t>( (uint32_t*)((uintptr_t)player + EntityBase_m_ID), 0 );
+        ent.name = (char*)player + ShowEntity_m_RoleName; // can't safely read string
 
         if (player == localPlayerPtr || ent.isDead) continue;
         entities.push_back(ent);
     }
 
+    printf("[ESP] Found %zu entities\n", entities.size());
     pthread_mutex_unlock(&entityMutex);
 }
 
-// ===== Draw ESP
+// ===== Draw ESP (same as before, but with sanity)
 void DrawESP() {
     if (!espEnabled) return;
 
     void* cam = cameraPtr;
     if (!cam) {
-        cam = (void*)Camera_get_main;  // hardcoded pointer
+        cam = (void*)Camera_get_main;  // hardcoded pointer — verify this offset!
+        if (!cam) {
+            printf("[ESP] Camera is null\n");
+            return;
+        }
         cameraPtr = cam;
     }
-    if (!cam) return;
 
     float screenW = GetScreenWidth();
     float screenH = GetScreenHeight();
+    if (screenW <= 0 || screenH <= 0) return;
 
     pthread_mutex_lock(&entityMutex);
     for (auto& ent : entities) {
@@ -125,10 +156,13 @@ void DrawESP() {
     pthread_mutex_unlock(&entityMutex);
 }
 
-// ===== Hook BattleManager.Update
+// ===== Hook
 void* HookedUpdate(void* battleManager) {
-    // Call original Update (direct function pointer)
+    if (!battleManager) return nullptr;
+
     void* (*originalUpdate)(void*) = (void* (*)(void*))BattleManager_Update;
+    if (!originalUpdate) return nullptr;
+
     void* result = originalUpdate(battleManager);
 
     UpdateEntities();
@@ -137,9 +171,6 @@ void* HookedUpdate(void* battleManager) {
     return result;
 }
 
-// ===== Init
 extern "C" void mlbb_esp_init() {
-    // In a real injection, you'd hook BattleManager_Update here
-    // For now, we just log
     printf("[ESP] Injected. ESP is active.\n");
 }
