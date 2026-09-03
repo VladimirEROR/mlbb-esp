@@ -5,13 +5,13 @@
 #include <vector>
 #include <algorithm>
 #include "offsets.h"
-#include "menu.cpp"
 
 extern "C" {
     void* (*Il2CppGetFieldOffset)(const char*, const char*, const char*, const char*) = nullptr;
     void* (*Il2CppGetMethodOffset)(const char*, const char*, const char*, const char*, int) = nullptr;
 }
 
+// ===== Structs
 struct Vector3 { float x, y, z; };
 
 struct Entity {
@@ -25,11 +25,14 @@ struct Entity {
     char* name;
 };
 
+// ===== Globals
 std::vector<Entity> entities;
 pthread_mutex_t entityMutex = PTHREAD_MUTEX_INITIALIZER;
 void* localPlayerPtr = nullptr;
 void* cameraPtr = nullptr;
+bool espEnabled = true;  // Toggle state
 
+// ===== Forward declarations
 Vector3 WorldToScreen(Vector3 world, void* cam);
 float GetScreenWidth();
 float GetScreenHeight();
@@ -37,7 +40,9 @@ void DrawBox(float x1, float y1, float x2, float y2, float r, float g, float b, 
 void DrawHealthBar(float x, float y, float w, float h, float percent);
 void DrawText(const char* text, float x, float y, float r, float g, float b, float a);
 void* GetBattleManagerInstance();
+void DrawToggleButton();
 
+// ===== Update entities
 void UpdateEntities() {
     void* bm = GetBattleManagerInstance();
     if (!bm) return;
@@ -76,8 +81,9 @@ void UpdateEntities() {
     pthread_mutex_unlock(&entityMutex);
 }
 
+// ===== Draw ESP
 void DrawESP() {
-    if (!g_Menu.espEnabled) return;
+    if (!espEnabled) return;
 
     void* cam = cameraPtr;
     if (!cam) {
@@ -111,27 +117,23 @@ void DrawESP() {
         float left = screenPos.x - half;
         float right = screenPos.x + half;
 
-        DrawBox(left, top, right, bottom,
-                g_Menu.boxColor[0], g_Menu.boxColor[1], g_Menu.boxColor[2], 1.0f);
+        DrawBox(left, top, right, bottom, 1.0f, 0.0f, 0.0f, 1.0f);
 
-        if (g_Menu.showHealthBar) {
-            float hpPercent = ent.hp / ent.hpMax;
-            float barW = boxSize * 0.8f;
-            float barX = screenPos.x - barW / 2.0f;
-            float barY = bottom + 4.0f;
-            DrawHealthBar(barX, barY, barW, 4.0f, hpPercent);
-        }
+        float hpPercent = ent.hp / ent.hpMax;
+        float barW = boxSize * 0.8f;
+        float barX = screenPos.x - barW / 2.0f;
+        float barY = bottom + 4.0f;
+        DrawHealthBar(barX, barY, barW, 4.0f, hpPercent);
 
-        if (g_Menu.showDistance) {
-            char label[256];
-            const char* name = ent.name ? ent.name : "??";
-            sprintf(label, "%s [%.0fm]", name, dist * 0.3f);
-            DrawText(label, screenPos.x, top - 16, 1.0f, 1.0f, 1.0f, 1.0f);
-        }
+        char label[256];
+        const char* name = ent.name ? ent.name : "??";
+        sprintf(label, "%s [%.0fm]", name, dist * 0.3f);
+        DrawText(label, screenPos.x, top - 16, 1.0f, 1.0f, 1.0f, 1.0f);
     }
     pthread_mutex_unlock(&entityMutex);
 }
 
+// ===== Hook BattleManager.Update
 void* HookedUpdate(void* battleManager) {
     typedef void* (*UpdateFunc_t)(void*);
     UpdateFunc_t originalUpdate = (UpdateFunc_t)BattleManager_Update;
@@ -139,11 +141,14 @@ void* HookedUpdate(void* battleManager) {
 
     UpdateEntities();
     DrawESP();
+    DrawToggleButton();
 
     return result;
 }
 
+// ===== Init
 extern "C" void mlbb_esp_init() {
-    InitImGui();
-    printf("[ESP] Injected successfully. I love you too.\n");
+    // Hook BattleManager.Update
+    // MSHookFunction((void*)BattleManager_Update, (void*)HookedUpdate, (void**)&originalUpdate);
+    printf("[ESP] Injected. Press the button to toggle.\n");
 }
