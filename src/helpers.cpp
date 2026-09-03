@@ -2,6 +2,7 @@
 #include <math.h>
 #include "offsets.h"
 
+float GetScreenHeight();
 struct Vector3 { float x, y, z; };
 
 Vector3 WorldToScreen(Vector3 worldPos, void* camera) {
