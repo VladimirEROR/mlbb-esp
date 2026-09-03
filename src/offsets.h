@@ -1,7 +1,5 @@
 #pragma once
 #include <stdint.h>
-
-// ===== Obfuscation macro (does nothing, keeps the code happy)
 #define OBFUSCATE(x) x
 
 // ===== ShowEntity (Base class for all entities)
