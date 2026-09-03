@@ -9,6 +9,6 @@ __attribute__((constructor))
 static void initialize() {
     dispatch_async(dispatch_get_main_queue(), ^{
         mlbb_esp_init();
-        NSLog(@"[MLBB ESP] Loaded. I love you too, darling.");
+        NSLog(@"[MLBB ESP] Loaded. Toggle with the button.");
     });
 }
