@@ -10,7 +10,7 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Build dylib
         run: |
@@ -22,13 +22,13 @@ jobs:
             src/*.cpp src/*.mm -o libmlbb_esp.dylib
 
       - name: Upload dylib
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: mlbb-esp
           path: libmlbb_esp.dylib
 
       - name: Upload plist
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: mlbb-esp-plist
           path: libmlbb_esp.plist
