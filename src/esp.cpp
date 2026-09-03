@@ -6,11 +6,6 @@
 #include <algorithm>
 #include "offsets.h"
 
-extern "C" {
-    void* (*Il2CppGetFieldOffset)(const char*, const char*, const char*, const char*) = nullptr;
-    void* (*Il2CppGetMethodOffset)(const char*, const char*, const char*, const char*, int) = nullptr;
-}
-
 // ===== Structs
 struct Vector3 { float x, y, z; };
 
@@ -30,7 +25,7 @@ std::vector<Entity> entities;
 pthread_mutex_t entityMutex = PTHREAD_MUTEX_INITIALIZER;
 void* localPlayerPtr = nullptr;
 void* cameraPtr = nullptr;
-bool espEnabled = true;  // Toggle state
+bool espEnabled = true;
 
 // ===== Forward declarations
 Vector3 WorldToScreen(Vector3 world, void* cam);
@@ -40,7 +35,6 @@ void DrawBox(float x1, float y1, float x2, float y2, float r, float g, float b, 
 void DrawHealthBar(float x, float y, float w, float h, float percent);
 void DrawText(const char* text, float x, float y, float r, float g, float b, float a);
 void* GetBattleManagerInstance();
-void DrawToggleButton();
 
 // ===== Update entities
 void UpdateEntities() {
@@ -87,9 +81,7 @@ void DrawESP() {
 
     void* cam = cameraPtr;
     if (!cam) {
-        typedef void* (*GetMainCamera_t)();
-        GetMainCamera_t get_main = (GetMainCamera_t)Camera_get_main;
-        cam = get_main();
+        cam = (void*)Camera_get_main;  // hardcoded pointer
         cameraPtr = cam;
     }
     if (!cam) return;
@@ -135,8 +127,8 @@ void DrawESP() {
 
 // ===== Hook BattleManager.Update
 void* HookedUpdate(void* battleManager) {
-    typedef void* (*UpdateFunc_t)(void*);
-    UpdateFunc_t originalUpdate = (UpdateFunc_t)BattleManager_Update;
+    // Call original Update (direct function pointer)
+    void* (*originalUpdate)(void*) = (void* (*)(void*))BattleManager_Update;
     void* result = originalUpdate(battleManager);
 
     UpdateEntities();
@@ -147,7 +139,7 @@ void* HookedUpdate(void* battleManager) {
 
 // ===== Init
 extern "C" void mlbb_esp_init() {
-    // Hook BattleManager.Update
-    // MSHookFunction((void*)BattleManager_Update, (void*)HookedUpdate, (void**)&originalUpdate);
+    // In a real injection, you'd hook BattleManager_Update here
+    // For now, we just log
     printf("[ESP] Injected. ESP is active.\n");
 }
