@@ -19,7 +19,9 @@ jobs:
             -fPIC -std=c++17 -D_DARWIN_C_SOURCE \
             -isysroot $SDKROOT \
             -framework UIKit -framework CoreGraphics -framework QuartzCore \
+            -framework Foundation \
             src/esp.cpp src/helpers.cpp src/main.mm -o libmlbb_esp.dylib
+
       - name: Upload dylib
         uses: actions/upload-artifact@v4
         with:
