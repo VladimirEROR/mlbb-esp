@@ -1,6 +1,9 @@
 #pragma once
 #include <stdint.h>
 
+// ===== Obfuscation macro (does nothing, keeps the code happy)
+#define OBFUSCATE(x) x
+
 // ===== ShowEntity (Base class for all entities)
 #define EntityBase_m_dRunSpeed (uintptr_t) Il2CppGetFieldOffset("Assembly-CSharp.dll", "", "ShowEntity", OBFUSCATE("m_dRunSpeed"))
 #define EntityBase_m_ID (uintptr_t) Il2CppGetFieldOffset("Assembly-CSharp.dll", "", "ShowEntity", OBFUSCATE("m_ID"))
