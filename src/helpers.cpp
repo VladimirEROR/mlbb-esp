@@ -1,6 +1,4 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <math.h>
 #include "offsets.h"
 
@@ -32,8 +30,10 @@ float GetScreenHeight() {
     return (float)getHeight();
 }
 
+// ===== Unity GL Drawing (example, must be adapted)
 void DrawBox(float x1, float y1, float x2, float y2, float r, float g, float b, float a) {
-    // Unity GL placeholder
+    // Implement via Unity GL or GUI
+    // For iOS, you'd use GL.Begin(GL.LINES) etc.
 }
 
 void DrawHealthBar(float x, float y, float w, float h, float percent) {
@@ -42,13 +42,14 @@ void DrawHealthBar(float x, float y, float w, float h, float percent) {
 }
 
 void DrawText(const char* text, float x, float y, float r, float g, float b, float a) {
-    // Unity GUI placeholder
+    // Implement via Unity GUI.Label
 }
 
 void* GetBattleManagerInstance() {
     static void* instance = nullptr;
     if (!instance) {
-        // Find singleton
+        // Find BattleManager singleton
+        // Usually BattleManager.get_instance() or a static field
     }
     return instance;
 }
