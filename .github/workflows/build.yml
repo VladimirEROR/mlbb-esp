@@ -1,0 +1,35 @@
+name: Build MLBB ESP Dylib
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build dylib
+        run: |
+          SDKROOT=$(xcrun --sdk iphoneos --show-sdk-path)
+          clang++ -arch arm64 -shared -O2 \
+            -fPIC -std=c++17 -D_DARWIN_C_SOURCE \
+            -isysroot $SDKROOT \
+            -framework UIKit -framework CoreGraphics -framework QuartzCore \
+            -framework Metal -framework MetalKit -framework QuartzCore \
+            src/*.cpp src/*.mm src/imgui/*.cpp -o libmlbb_esp.dylib
+
+      - name: Upload dylib
+        uses: actions/upload-artifact@v3
+        with:
+          name: mlbb-esp
+          path: libmlbb_esp.dylib
+
+      - name: Upload plist
+        uses: actions/upload-artifact@v3
+        with:
+          name: mlbb-esp-plist
+          path: libmlbb_esp.plist
